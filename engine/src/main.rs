@@ -54,14 +54,14 @@ impl GameState for RandomCols {
     fn on_exit(&mut self) {}
     fn on_update(&mut self, draw_surface: &mut Surface, _elapsed_time: u128) {
         let pb = draw_surface.without_lock_mut().unwrap();
-        for i in 0..1024 * 3 {
+        for x in 0..1024 {
             let r = self.rng.gen();
             let g = self.rng.gen();
             let b = self.rng.gen();
-            for j in (0..768).step_by(3) {
-                pb[j + (i * 768)] = r;
-                pb[j + 1 + (i * 768)] = g;
-                pb[j + 2 + (i * 768)] = b;
+            for y in 0..768 {
+                pb[(x + 1024 * y) * 3] = r;
+                pb[(x + 1024 * y) * 3 + 1] = g;
+                pb[(x + 1024 * y) * 3 + 2] = b;
             }
         }
     }

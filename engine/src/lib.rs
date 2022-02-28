@@ -6,16 +6,25 @@ use std::convert::TryInto;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
 
-
-pub trait GameState {
-    fn on_start(&mut self);
-    fn on_update(&mut self, draw_surface: &mut Surface, elapsed_time: u128);
-    fn on_exit(&mut self);
+pub struct Context {
+    pub screen_width: u32,
+    pub screen_height: u32,
 }
 
-pub fn run(win_x: u32, win_y: u32, game_state: &mut dyn GameState) {
+pub trait GameState {
+    fn on_start(&self) {}
+    fn on_update(&mut self, elapsed_time: u128, draw_surface: &mut Surface);
+    fn on_exit(&self) {}
+    fn context(&self) -> &Context;
+    fn context_mut(&mut self) -> &mut Context;
+}
+
+pub fn run<T: GameState>(game_state: &mut T) {
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
+    let ctx = game_state.context();
+    let win_x = ctx.screen_width;
+    let win_y = ctx.screen_height;
     let window = video_subsystem
         .window("Game", win_x, win_y)
         .build()
@@ -31,7 +40,7 @@ pub fn run(win_x: u32, win_y: u32, game_state: &mut dyn GameState) {
         let elapsed_time = t1.duration_since(t2).as_millis();
         t2 = t1;
         {
-            game_state.on_update(&mut draw_surface, elapsed_time);
+            game_state.on_update(elapsed_time, &mut draw_surface);
             let mut window_surface = window.surface(&mut event_pump).unwrap();
             window_surface.update_window().unwrap();
             draw_surface.blit(None, &mut window_surface, None).unwrap();

@@ -15,8 +15,8 @@ struct NoiseMaker<'a> {
 impl GameState for NoiseMaker<'_> {
     fn on_update(&mut self, _elapsed_time: u128, draw_surface: &mut Surface) {
         let pb = draw_surface.without_lock_mut().unwrap();
-        for i in 0..pb.len() {
-             pb[i] = self.rng.gen();
+        for byte in pb {
+             *byte = self.rng.gen();
         }
     }
     fn context(&self) -> &Context {
@@ -89,7 +89,7 @@ fn main() {
     let mut rng = rand::thread_rng();
     let mut game_state = RandomRows {
         rng: &mut rng,
-        ctx: ctx,
+        ctx,
     };
     run(&mut game_state);
 }

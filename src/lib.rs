@@ -30,7 +30,7 @@ pub fn run<T: GameState>(game_state: &mut T) {
         .build()
         .unwrap();
     let mut event_pump = sdl.event_pump().unwrap();
-    let mut pixel_buffer = vec![100 as u8; (win_x * win_y * 3).try_into().expect("Somehow overflowed a usize with num screen pixels")].into_boxed_slice();
+    let mut pixel_buffer = vec![100_u8; (win_x * win_y * 3).try_into().expect("Somehow overflowed a usize with num screen pixels")].into_boxed_slice();
     let mut draw_surface = Surface::from_data(&mut pixel_buffer, win_x, win_y, 3 * win_x, PixelFormatEnum::RGB24).unwrap();
     let mut t1;
     let mut t2 = Instant::now();
@@ -41,7 +41,7 @@ pub fn run<T: GameState>(game_state: &mut T) {
         t2 = t1;
         {
             game_state.on_update(elapsed_time, &mut draw_surface);
-            let mut window_surface = window.surface(&mut event_pump).unwrap();
+            let mut window_surface = window.surface(&event_pump).unwrap();
             window_surface.update_window().unwrap();
             draw_surface.blit(None, &mut window_surface, None).unwrap();
         }

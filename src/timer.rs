@@ -24,6 +24,9 @@ impl Timer {
         self.acc = Duration::from_secs(0);
         self.done = false;
     }
+    pub fn set_length(&mut self, length: Duration) {
+        self.length = length;
+    }
     pub fn force(&mut self) {
         self.done = true;
     }

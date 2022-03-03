@@ -1,48 +1,49 @@
 extern crate rand;
 extern crate sdl2;
 
+use std::collections::VecDeque;
 use std::time::Duration;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
 use sdl2::surface::Surface;
 
-use engine::{ Context, GameState, timer };
+use engine::{ Context, GameState, timer, Event };
 
-pub struct RandomNoise {
-    rng: ThreadRng,
-    ctx: Context,
-}
-
-impl RandomNoise {
-    pub fn new() -> Self {
-        let rng = rand::thread_rng();
-        let ctx = Context {
-            screen_width: 1024,
-            screen_height: 768,
-        };
-        Self {
-            rng,
-            ctx,
-        }
-    }
-}
-
-impl GameState for RandomNoise {
-    fn on_update(&mut self, _elapsed_time: Duration, draw_surface: &mut Surface) {
-        let pb = draw_surface.without_lock_mut().unwrap();
-        for byte in pb {
-             *byte = self.rng.gen();
-        }
-    }
-    fn context(&self) -> &Context {
-        &self.ctx
-    }
-    fn context_mut(&mut self) -> &mut Context {
-        &mut self.ctx
-    }
-}
-
+//pub struct RandomNoise {
+//    rng: ThreadRng,
+//    ctx: Context,
+//}
+//
+//impl RandomNoise {
+//    pub fn new() -> Self {
+//        let rng = rand::thread_rng();
+//        let ctx = Context {
+//            screen_width: 1024,
+//            screen_height: 768,
+//        };
+//        Self {
+//            rng,
+//            ctx,
+//        }
+//    }
+//}
+//
+//impl GameState for RandomNoise {
+//    fn on_update(&mut self, _elapsed_time: Duration, draw_surface: &mut Surface) {
+//        let pb = draw_surface.without_lock_mut().unwrap();
+//        for byte in pb {
+//             *byte = self.rng.gen();
+//        }
+//    }
+//    fn context(&self) -> &Context {
+//        &self.ctx
+//    }
+//    fn context_mut(&mut self) -> &mut Context {
+//        &mut self.ctx
+//    }
+//}
+//
 pub struct RandomNoiseLimited {
     rng: ThreadRng,
     ctx: Context,
@@ -52,23 +53,25 @@ pub struct RandomNoiseLimited {
 impl RandomNoiseLimited {
     pub fn new() -> Self {
         let rng = rand::thread_rng();
-        let ctx = Context {
-            screen_width: 1024,
-            screen_height: 768,
-        };
+        let ctx = Context::new(1024, 768);
         Self {
             rng,
             ctx,
-            draw_timer: timer::Timer::new(Duration::from_millis(100)),
+            draw_timer: timer::Timer::new(Duration::from_millis(33)),
         }
     }
 }
 
 impl GameState for RandomNoiseLimited {
-    fn on_start(&mut self) {
+    fn on_start(&mut self, event_queue: &mut VecDeque<Event>) {
         self.draw_timer.force();
+        event_queue.push_back(Event::SetWindowTitle(String::from("START")));
     }
-    fn on_update(&mut self, elapsed_time: Duration, draw_surface: &mut Surface) {
+    fn on_update(&mut self,
+                 elapsed_time: Duration,
+                 draw_surface: &mut Surface,
+                 event_queue: &mut VecDeque<Event>) {
+        event_queue.push_back(Event::SetWindowTitle(format!("Render time: {}ns", elapsed_time.as_nanos())));
         self.draw_timer.update(elapsed_time);
         if self.draw_timer.done {
             let pb = draw_surface.without_lock_mut().unwrap();
@@ -85,85 +88,85 @@ impl GameState for RandomNoiseLimited {
         &mut self.ctx
     }
 }
-
-pub struct RandomRows {
-    rng: ThreadRng,
-    ctx: Context,
-}
-
-impl RandomRows {
-    pub fn new() -> Self {
-        let rng = rand::thread_rng();
-        let ctx = Context {
-            screen_width: 1024,
-            screen_height: 768,
-        };
-        Self {
-            rng,
-            ctx,
-        }
-    }
-}
-
-impl GameState for RandomRows {
-    fn on_update(&mut self, _elapsed_time: Duration, draw_surface: &mut Surface) {
-        let pb = draw_surface.without_lock_mut().unwrap();
-        for i in 0..self.ctx.screen_height {
-            let r = self.rng.gen();
-            let g = self.rng.gen();
-            let b = self.rng.gen();
-            for j in (0..self.ctx.screen_width as usize * 3).step_by(3) {
-                pb[j + (i * self.ctx.screen_width * 3) as usize] = r;
-                pb[j + 1 + (i * self.ctx.screen_width * 3) as usize] = g;
-                pb[j + 2 + (i * self.ctx.screen_width * 3) as usize] = b;
-            }
-        }
-    }
-    fn context(&self) -> &Context {
-        &self.ctx
-    }
-    fn context_mut(&mut self) -> &mut Context {
-        &mut self.ctx
-    }
-}
-
-pub struct RandomCols {
-    rng: ThreadRng,
-    ctx: Context,
-}
-
-impl RandomCols {
-    pub fn new() -> Self {
-        let rng = rand::thread_rng();
-        let ctx = Context {
-            screen_width: 1024,
-            screen_height: 768,
-        };
-        Self {
-            rng,
-            ctx,
-        }
-    }
-}
-
-impl GameState for RandomCols {
-    fn on_update(&mut self, _elapsed_time: Duration, draw_surface: &mut Surface) {
-        let pb = draw_surface.without_lock_mut().unwrap();
-        for x in 0..self.ctx.screen_width {
-            let r = self.rng.gen();
-            let g = self.rng.gen();
-            let b = self.rng.gen();
-            for y in 0..self.ctx.screen_height {
-                pb[((x + self.ctx.screen_width * y) * 3) as usize] = r;
-                pb[((x + self.ctx.screen_width * y) * 3 + 1) as usize] = g;
-                pb[((x + self.ctx.screen_width * y) * 3 + 2) as usize] = b;
-            }
-        }
-    }
-    fn context(&self) -> &Context {
-        &self.ctx
-    }
-    fn context_mut(&mut self) -> &mut Context {
-        &mut self.ctx
-    }
-}
+//
+//pub struct RandomRows {
+//    rng: ThreadRng,
+//    ctx: Context,
+//}
+//
+//impl RandomRows {
+//    pub fn new() -> Self {
+//        let rng = rand::thread_rng();
+//        let ctx = Context {
+//            screen_width: 1024,
+//            screen_height: 768,
+//        };
+//        Self {
+//            rng,
+//            ctx,
+//        }
+//    }
+//}
+//
+//impl GameState for RandomRows {
+//    fn on_update(&mut self, _elapsed_time: Duration, draw_surface: &mut Surface) {
+//        let pb = draw_surface.without_lock_mut().unwrap();
+//        for i in 0..self.ctx.screen_height {
+//            let r = self.rng.gen();
+//            let g = self.rng.gen();
+//            let b = self.rng.gen();
+//            for j in (0..self.ctx.screen_width as usize * 3).step_by(3) {
+//                pb[j + (i * self.ctx.screen_width * 3) as usize] = r;
+//                pb[j + 1 + (i * self.ctx.screen_width * 3) as usize] = g;
+//                pb[j + 2 + (i * self.ctx.screen_width * 3) as usize] = b;
+//            }
+//        }
+//    }
+//    fn context(&self) -> &Context {
+//        &self.ctx
+//    }
+//    fn context_mut(&mut self) -> &mut Context {
+//        &mut self.ctx
+//    }
+//}
+//
+//pub struct RandomCols {
+//    rng: ThreadRng,
+//    ctx: Context,
+//}
+//
+//impl RandomCols {
+//    pub fn new() -> Self {
+//        let rng = rand::thread_rng();
+//        let ctx = Context {
+//            screen_width: 1024,
+//            screen_height: 768,
+//        };
+//        Self {
+//            rng,
+//            ctx,
+//        }
+//    }
+//}
+//
+//impl GameState for RandomCols {
+//    fn on_update(&mut self, _elapsed_time: Duration, draw_surface: &mut Surface) {
+//        let pb = draw_surface.without_lock_mut().unwrap();
+//        for x in 0..self.ctx.screen_width {
+//            let r = self.rng.gen();
+//            let g = self.rng.gen();
+//            let b = self.rng.gen();
+//            for y in 0..self.ctx.screen_height {
+//                pb[((x + self.ctx.screen_width * y) * 3) as usize] = r;
+//                pb[((x + self.ctx.screen_width * y) * 3 + 1) as usize] = g;
+//                pb[((x + self.ctx.screen_width * y) * 3 + 2) as usize] = b;
+//            }
+//        }
+//    }
+//    fn context(&self) -> &Context {
+//        &self.ctx
+//    }
+//    fn context_mut(&mut self) -> &mut Context {
+//        &mut self.ctx
+//    }
+//}

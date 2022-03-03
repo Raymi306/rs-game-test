@@ -8,7 +8,7 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 use sdl2::surface::Surface;
 
-use engine::{ Context, GameState, timer, Event };
+use engine::{ Context, Event, GameState, KeyboardState, timer, };
 
 //pub struct RandomNoise {
 //    rng: ThreadRng,
@@ -65,14 +65,19 @@ impl RandomNoiseLimited {
 impl GameState for RandomNoiseLimited {
     fn on_start(&mut self, event_queue: &mut VecDeque<Event>) {
         self.draw_timer.force();
-        event_queue.push_back(Event::SetWindowTitle(String::from("START")));
     }
     fn on_update(&mut self,
                  elapsed_time: Duration,
+                 keyboard_state: &KeyboardState,
                  draw_surface: &mut Surface,
                  event_queue: &mut VecDeque<Event>) {
-        event_queue.push_back(Event::SetWindowTitle(format!("Render time: {}ns", elapsed_time.as_nanos())));
+        event_queue.push_back(Event::SetWindowTitle(format!("Render time: {}ms", elapsed_time.as_millis())));
         self.draw_timer.update(elapsed_time);
+        let old_keys = keyboard_state.old_keys();
+        let new_keys = keyboard_state.new_keys();
+        if !old_keys.is_empty() || !new_keys.is_empty() {
+            println!("old keys: {:?}, new_keys: {:?}", old_keys, new_keys);
+        }
         if self.draw_timer.done {
             let pb = draw_surface.without_lock_mut().unwrap();
             for byte in pb {

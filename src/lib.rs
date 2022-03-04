@@ -26,6 +26,7 @@ impl Context {
 
 //TODO controls, mouse + keyboard
 //TODO control mapping
+//TODO create controls module
 pub struct KeyboardState {
     pub previous: HashSet<Keycode>,
     pub current: HashSet<Keycode>,
@@ -40,6 +41,7 @@ impl KeyboardState {
     }
 }
 
+//TODO create event module
 /// Represents possible interactions with sdl2 objects, in addition to abstract events
 pub enum Event {
     SetWindowTitle(String),
@@ -54,15 +56,15 @@ pub trait GameState {
         draw_surface: &mut Surface,
         event_queue: &mut VecDeque<Event>
         );
-    fn on_exit(&mut self, _event_queue: &mut VecDeque<Event>) {}
+    fn on_exit(&mut self) {}
     fn context(&self) -> &Context;
     fn context_mut(&mut self) -> &mut Context;
 }
 
-/// handles boilerplate sdl2 instantiatiations and the main loop
+/// handles boilerplate sdl2 instantiatiations and the main loop.
 /// Within the main loop, manages an event queue for interacting with sdl2
 /// objects safely, calls GameState hooks, and blits to the screen after 
-/// on_update. Finally, this function manages the sdl event pump
+/// on_update. Finally, this function manages the sdl event pump.
 pub fn run<T: GameState>(game_state: &mut T) {
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
@@ -113,7 +115,5 @@ pub fn run<T: GameState>(game_state: &mut T) {
             }
         }
     }
-    {
-        game_state.on_exit(&mut event_queue);
-    }
+    game_state.on_exit();
 }

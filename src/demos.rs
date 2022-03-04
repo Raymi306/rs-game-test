@@ -63,7 +63,7 @@ impl RandomNoiseLimited {
 }
 
 impl GameState for RandomNoiseLimited {
-    fn on_start(&mut self, event_queue: &mut VecDeque<Event>) {
+    fn on_start(&mut self, _event_queue: &mut VecDeque<Event>) {
         self.draw_timer.force();
     }
     fn on_update(&mut self,

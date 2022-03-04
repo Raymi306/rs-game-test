@@ -44,13 +44,13 @@ use engine::{ Context, Event, GameState, KeyboardState, timer, };
 //    }
 //}
 //
-pub struct RandomNoiseLimited {
+pub struct MixedExample {
     rng: ThreadRng,
     ctx: Context,
     draw_timer: timer::Timer,
 }
 
-impl RandomNoiseLimited {
+impl MixedExample {
     pub fn new() -> Self {
         let rng = rand::thread_rng();
         let ctx = Context::new(1024, 768);
@@ -62,7 +62,7 @@ impl RandomNoiseLimited {
     }
 }
 
-impl GameState for RandomNoiseLimited {
+impl GameState for MixedExample {
     fn on_start(&mut self, _event_queue: &mut VecDeque<Event>) {
         self.draw_timer.force();
     }

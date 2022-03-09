@@ -68,7 +68,7 @@ impl GameState for MixedExample {
                  elapsed_time: Duration,
                  ngin: &mut Engine,
                  ) {
-        ngin.window.get_mut().set_title(&format!("Render time: {}ms", elapsed_time.as_millis())).unwrap();
+        ngin.window.set_title(&format!("Render time: {}ms", elapsed_time.as_millis())).unwrap();
         self.draw_timer.update(elapsed_time);
         let old_keys = ngin.keyboard_state.old_keys();
         let new_keys = ngin.keyboard_state.new_keys();
@@ -76,7 +76,7 @@ impl GameState for MixedExample {
             println!("old keys: {:?}, new_keys: {:?}", old_keys, new_keys);
         }
         if self.draw_timer.done {
-            let pb = ngin.draw_surface.get_mut().without_lock_mut().unwrap();
+            let pb = ngin.draw_surface.without_lock_mut().unwrap();
             for byte in pb {
                  *byte = self.rng.gen();
             }

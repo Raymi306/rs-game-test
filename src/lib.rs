@@ -1,6 +1,5 @@
 extern crate sdl2;
 
-use std::cell::RefCell;
 use std::collections::{ HashSet };
 use std::convert::TryInto;
 use std::time::{ Instant, Duration };
@@ -45,8 +44,8 @@ impl KeyboardState {
 
 pub struct Engine<'a> {
     pub keyboard_state: KeyboardState,
-    pub window: RefCell<Window>,
-    pub draw_surface: RefCell<Surface<'a>>,
+    pub window: Window,
+    pub draw_surface: Surface<'a>,
 }
 
 pub trait GameState {
@@ -62,8 +61,7 @@ pub trait GameState {
 }
 
 /// handles boilerplate sdl2 instantiatiations and the main loop.
-/// Within the main loop, manages an event queue for interacting with sdl2
-/// objects safely, calls GameState hooks, and blits to the screen after 
+/// Within the main loop, calls GameState hooks, and blits to the screen after 
 /// on_update. Finally, this function manages the sdl event pump.
 pub fn run<T: GameState>(game_state: &mut T) {
     let sdl = sdl2::init().unwrap();
@@ -71,24 +69,18 @@ pub fn run<T: GameState>(game_state: &mut T) {
     let ctx = game_state.context();
     let win_x = ctx.screen_width;
     let win_y = ctx.screen_height;
-    let window = RefCell::new(video_subsystem
+    let window = video_subsystem
         .window("Game", win_x, win_y)
         .build()
-        .unwrap());
+        .unwrap();
     let mut event_pump = sdl.event_pump().unwrap();
-    let prev_keys = HashSet::new();
     let mut pixel_buffer = vec![100_u8; (win_x * win_y * 3).try_into().expect("Somehow overflowed a usize with num screen pixels")].into_boxed_slice();
-    let draw_surface = RefCell::new(Surface::from_data(&mut pixel_buffer, win_x, win_y, 3 * win_x, PixelFormatEnum::RGB24).unwrap());
+    let draw_surface = Surface::from_data(&mut pixel_buffer, win_x, win_y, 3 * win_x, PixelFormatEnum::RGB24).unwrap();
     let mut t1 = Instant::now();
 
-
     let keyboard_state = KeyboardState {
-        previous: prev_keys,
-        current: event_pump
-            .keyboard_state()
-            .pressed_scancodes()
-            .filter_map(Keycode::from_scancode)
-            .collect(),
+        previous: HashSet::new(),
+        current: HashSet::new(),
     };
 
     let mut ngin = Engine {
@@ -108,9 +100,9 @@ pub fn run<T: GameState>(game_state: &mut T) {
             .collect();
         game_state.on_update(elapsed_time, &mut ngin);
         ngin.keyboard_state.previous = ngin.keyboard_state.current;
-        let mut window_surface = ngin.window.get_mut().surface(&event_pump).unwrap();
+        let mut window_surface = ngin.window.surface(&event_pump).unwrap();
+        ngin.draw_surface.blit(None, &mut window_surface, None).unwrap();
         window_surface.update_window().unwrap();
-        ngin.draw_surface.get_mut().blit(None, &mut window_surface, None).unwrap();
         for event in event_pump.poll_iter() {
             match event {
                 sdl2::event::Event::Quit {..} => break 'main,

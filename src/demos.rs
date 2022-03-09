@@ -1,14 +1,12 @@
 extern crate rand;
 extern crate sdl2;
 
-use std::collections::VecDeque;
 use std::time::Duration;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
-use sdl2::surface::Surface;
 
-use engine::{ Context, Event, GameState, KeyboardState, timer, };
+use engine::{ Context, GameState, timer, Engine };
 
 //pub struct RandomNoise {
 //    rng: ThreadRng,
@@ -63,23 +61,22 @@ impl MixedExample {
 }
 
 impl GameState for MixedExample {
-    fn on_start(&mut self, _event_queue: &mut VecDeque<Event>) {
+    fn on_start(&mut self) {
         self.draw_timer.force();
     }
     fn on_update(&mut self,
                  elapsed_time: Duration,
-                 keyboard_state: &KeyboardState,
-                 draw_surface: &mut Surface,
-                 event_queue: &mut VecDeque<Event>) {
-        event_queue.push_back(Event::SetWindowTitle(format!("Render time: {}ms", elapsed_time.as_millis())));
+                 ngin: &mut Engine,
+                 ) {
+        ngin.window.get_mut().set_title(&format!("Render time: {}ms", elapsed_time.as_millis())).unwrap();
         self.draw_timer.update(elapsed_time);
-        let old_keys = keyboard_state.old_keys();
-        let new_keys = keyboard_state.new_keys();
+        let old_keys = ngin.keyboard_state.old_keys();
+        let new_keys = ngin.keyboard_state.new_keys();
         if !old_keys.is_empty() || !new_keys.is_empty() {
             println!("old keys: {:?}, new_keys: {:?}", old_keys, new_keys);
         }
         if self.draw_timer.done {
-            let pb = draw_surface.without_lock_mut().unwrap();
+            let pb = ngin.draw_surface.get_mut().without_lock_mut().unwrap();
             for byte in pb {
                  *byte = self.rng.gen();
             }

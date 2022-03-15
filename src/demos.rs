@@ -1,10 +1,12 @@
 extern crate rand;
 extern crate sdl2;
 
+use std::path::Path;
 use std::time::Duration;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use sdl2::ttf::{ Font, Sdl2TtfContext };
 
 use engine::{ Context, GameState, timer, Engine };
 
@@ -42,27 +44,40 @@ use engine::{ Context, GameState, timer, Engine };
 //    }
 //}
 //
-pub struct MixedExample {
-    rng: ThreadRng,
-    ctx: Context,
-    draw_timer: timer::Timer,
+pub fn load_font<'a, 'b>(ttf_context: &'a Sdl2TtfContext, font_path: &Path, size: u16) 
+-> Font<'a, 'b> {
+    ttf_context.load_font(font_path, size).unwrap()
 }
 
-impl MixedExample {
+pub struct MixedExample<'a, 'b> {
+    ctx: Context,
+    draw_timer: timer::Timer,
+    rng: ThreadRng,
+    _font: Option<Font<'a, 'b>>,
+}
+
+impl<'a, 'b> MixedExample<'a, 'b> {
     pub fn new() -> Self {
         let rng = rand::thread_rng();
         let ctx = Context::new(1024, 768);
+        let _font = None;
         Self {
-            rng,
             ctx,
+            _font,
+            rng,
             draw_timer: timer::Timer::new(Duration::from_millis(33)),
         }
     }
+    fn font(&self) -> &Font<'a, 'b> {
+        self._font.as_ref().expect("Font is uninitialized")
+    }
 }
 
-impl GameState for MixedExample {
-    fn on_start(&mut self) {
+impl GameState for MixedExample<'_, '_> {
+    fn on_start(&mut self, ngin: &mut Engine) {
         self.draw_timer.force();
+        let font_path = Path::new("fonts/JetbrainsMonoRegular.ttf");
+        self._font = Some(load_font(&ngin.ttf_context, &font_path, 16));
     }
     fn on_update(&mut self,
                  elapsed_time: Duration,

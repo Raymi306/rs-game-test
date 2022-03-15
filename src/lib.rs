@@ -7,6 +7,7 @@ use std::time::{ Instant, Duration };
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
+use sdl2::ttf::Sdl2TtfContext;
 use sdl2::video::Window;
 
 pub mod timer;
@@ -46,10 +47,11 @@ pub struct Engine<'a> {
     pub keyboard_state: KeyboardState,
     pub window: Window,
     pub draw_surface: Surface<'a>,
+    pub ttf_context: Sdl2TtfContext,
 }
 
 pub trait GameState {
-    fn on_start(&mut self) {}
+    fn on_start(&mut self, _ngin: &mut Engine) {}
     fn on_update(
         &mut self,
         elapsed_time: Duration,
@@ -65,11 +67,12 @@ pub trait GameState {
 /// on_update. Finally, this function manages the sdl event pump.
 pub fn run<T: GameState>(game_state: &mut T) {
     let sdl = sdl2::init().unwrap();
-    let video_subsystem = sdl.video().unwrap();
+    let video_context = sdl.video().unwrap();
+    let ttf_context = sdl2::ttf::init().unwrap();
     let ctx = game_state.context();
     let win_x = ctx.screen_width;
     let win_y = ctx.screen_height;
-    let window = video_subsystem
+    let window = video_context
         .window("Game", win_x, win_y)
         .build()
         .unwrap();
@@ -77,19 +80,19 @@ pub fn run<T: GameState>(game_state: &mut T) {
     let mut pixel_buffer = vec![100_u8; (win_x * win_y * 3).try_into().expect("Somehow overflowed a usize with num screen pixels")].into_boxed_slice();
     let draw_surface = Surface::from_data(&mut pixel_buffer, win_x, win_y, 3 * win_x, PixelFormatEnum::RGB24).unwrap();
     let mut t1 = Instant::now();
-
     let keyboard_state = KeyboardState {
         previous: HashSet::new(),
         current: HashSet::new(),
     };
-
     let mut ngin = Engine {
         keyboard_state,
         window,
         draw_surface,
+        ttf_context,
     };
 
-    game_state.on_start();
+    game_state.on_start(&mut ngin);
+
     'main: loop {
         let elapsed_time = t1.elapsed();
         t1 = Instant::now();
@@ -98,7 +101,9 @@ pub fn run<T: GameState>(game_state: &mut T) {
             .pressed_scancodes()
             .filter_map(Keycode::from_scancode)
             .collect();
+
         game_state.on_update(elapsed_time, &mut ngin);
+
         ngin.keyboard_state.previous = ngin.keyboard_state.current;
         let mut window_surface = ngin.window.surface(&event_pump).unwrap();
         ngin.draw_surface.blit(None, &mut window_surface, None).unwrap();
@@ -110,5 +115,7 @@ pub fn run<T: GameState>(game_state: &mut T) {
             }
         }
     }
+
     game_state.on_exit();
+
 }

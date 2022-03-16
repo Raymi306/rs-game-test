@@ -7,5 +7,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sdl2 = { version = "0.35.2", default-features = false, features = ["ttf"] }
+sdl2 = { version = "0.35.2", default-features = false, features = ["static-link", "bundled"] }
 rand = { version = "0.8.4" }

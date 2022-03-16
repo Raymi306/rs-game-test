@@ -1,26 +1,40 @@
 extern crate sdl2;
 
-use std::collections::{ HashSet };
+use std::collections::{ HashSet, HashMap };
 use std::convert::TryInto;
+use std::path::Path;
 use std::time::{ Instant, Duration };
 
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
+use sdl2::ttf::{ Font, Sdl2TtfContext };
 use sdl2::video::Window;
 
 pub mod timer;
 
+pub struct FontDescriptor {
+    pub path: &'static str,
+    pub label: &'static str,
+    pub size: u16,
+}
+
 pub struct Context {
     pub screen_width: u32,
     pub screen_height: u32,
+    pub font_descriptors: Option<Vec<FontDescriptor>>,
 }
 
 impl Context {
-    pub fn new(screen_width: u32, screen_height: u32) -> Self {
+    pub fn new(
+        screen_width: u32,
+        screen_height: u32,
+        font_descriptors: Option<Vec<FontDescriptor>>,
+        ) -> Self {
         Self {
             screen_width,
             screen_height,
+            font_descriptors,
         }
     }
 }
@@ -42,14 +56,15 @@ impl KeyboardState {
     }
 }
 
-pub struct Engine<'a> {
+pub struct Engine<'a, 'b> {
     pub keyboard_state: KeyboardState,
     pub window: Window,
     pub draw_surface: Surface<'a>,
+    pub fonts: HashMap<&'static str, Font<'a, 'b>>,
 }
 
 pub trait GameState {
-    fn on_start(&mut self) {}
+    fn on_start(&mut self, _ngin: &mut Engine) {}
     fn on_update(
         &mut self,
         elapsed_time: Duration,
@@ -57,10 +72,20 @@ pub trait GameState {
         );
     fn on_exit(&mut self) {}
     fn context(&self) -> &Context;
-    fn context_mut(&mut self) -> &mut Context;
+    //fn context_mut(&mut self) -> &mut Context;
 }
 
-/// handles boilerplate sdl2 instantiatiations and the main loop.
+fn load_fonts<'a, 'b>(ttf_context: &'a Sdl2TtfContext, font_descriptors: &Vec<FontDescriptor>) -> HashMap<&'static str, Font<'a, 'b>> {
+    let mut result: HashMap<&str, Font> = HashMap::new();
+    for descriptor in font_descriptors {
+        let path = Path::new(descriptor.path);
+        let font = ttf_context.load_font(path, descriptor.size).unwrap();
+        result.insert(descriptor.label, font);
+    }
+    result
+}
+
+/// Handles boilerplate sdl2 instantiatiations and the main loop.
 /// Within the main loop, calls GameState hooks, and blits to the screen after 
 /// on_update. Finally, this function manages the sdl event pump.
 pub fn run<T: GameState>(game_state: &mut T) {
@@ -73,6 +98,7 @@ pub fn run<T: GameState>(game_state: &mut T) {
         .window("Game", win_x, win_y)
         .build()
         .unwrap();
+    let ttf_context = sdl2::ttf::init().unwrap();
     let mut event_pump = sdl.event_pump().unwrap();
     let mut pixel_buffer = vec![100_u8; (win_x * win_y * 3).try_into().expect("Somehow overflowed a usize with num screen pixels")].into_boxed_slice();
     let draw_surface = Surface::from_data(&mut pixel_buffer, win_x, win_y, 3 * win_x, PixelFormatEnum::RGB24).unwrap();
@@ -82,14 +108,11 @@ pub fn run<T: GameState>(game_state: &mut T) {
         previous: HashSet::new(),
         current: HashSet::new(),
     };
+    let fonts = load_fonts(&ttf_context, &ctx.font_descriptors.as_ref().unwrap());
+    let mut ngin = Engine { keyboard_state, window, draw_surface, fonts };
 
-    let mut ngin = Engine {
-        keyboard_state,
-        window,
-        draw_surface,
-    };
+    game_state.on_start(&mut ngin);
 
-    game_state.on_start();
     'main: loop {
         let elapsed_time = t1.elapsed();
         t1 = Instant::now();
@@ -98,7 +121,9 @@ pub fn run<T: GameState>(game_state: &mut T) {
             .pressed_scancodes()
             .filter_map(Keycode::from_scancode)
             .collect();
+
         game_state.on_update(elapsed_time, &mut ngin);
+
         ngin.keyboard_state.previous = ngin.keyboard_state.current;
         let mut window_surface = ngin.window.surface(&event_pump).unwrap();
         ngin.draw_surface.blit(None, &mut window_surface, None).unwrap();

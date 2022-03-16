@@ -5,8 +5,9 @@ use std::time::Duration;
 
 use rand::Rng;
 use rand::rngs::ThreadRng;
+use sdl2::pixels::Color;
 
-use engine::{ Context, GameState, timer, Engine };
+use engine::{ Context, Engine, GameState, timer, FontDescriptor };
 
 //pub struct RandomNoise {
 //    rng: ThreadRng,
@@ -42,32 +43,48 @@ use engine::{ Context, GameState, timer, Engine };
 //    }
 //}
 //
+
 pub struct MixedExample {
-    rng: ThreadRng,
     ctx: Context,
     draw_timer: timer::Timer,
+    rng: ThreadRng,
 }
 
 impl MixedExample {
     pub fn new() -> Self {
         let rng = rand::thread_rng();
-        let ctx = Context::new(1024, 768);
+        let path = "fonts/JetbrainsMonoRegular.ttf";
+        let desired_fonts = vec![
+            FontDescriptor {
+                path,
+                label: "font_small",
+                size: 12,
+            },
+            FontDescriptor {
+                path,
+                label: "font_medium",
+                size: 24,
+            },
+            FontDescriptor {
+                path,
+                label: "font_large",
+                size: 64,
+            },
+        ];
+        let ctx = Context::new(1024, 768, Some(desired_fonts));
         Self {
-            rng,
             ctx,
-            draw_timer: timer::Timer::new(Duration::from_millis(33)),
+            rng,
+            draw_timer: timer::Timer::new(Duration::from_millis(16)),
         }
     }
 }
 
 impl GameState for MixedExample {
-    fn on_start(&mut self) {
+    fn on_start(&mut self, _ngin: &mut Engine) {
         self.draw_timer.force();
     }
-    fn on_update(&mut self,
-                 elapsed_time: Duration,
-                 ngin: &mut Engine,
-                 ) {
+    fn on_update(&mut self, elapsed_time: Duration, ngin: &mut Engine) {
         ngin.window.set_title(&format!("Render time: {}ms", elapsed_time.as_millis())).unwrap();
         self.draw_timer.update(elapsed_time);
         let old_keys = ngin.keyboard_state.old_keys();
@@ -76,20 +93,23 @@ impl GameState for MixedExample {
             println!("old keys: {:?}, new_keys: {:?}", old_keys, new_keys);
         }
         if self.draw_timer.done {
+            let font_surface = ngin.fonts["font_medium"].render(&format!("{}ms", elapsed_time.as_millis())).blended(Color::RGBA(0,0,0,255)).unwrap();
             let pb = ngin.draw_surface.without_lock_mut().unwrap();
             for byte in pb {
                  *byte = self.rng.gen();
             }
+            font_surface.blit(None, &mut ngin.draw_surface, None).unwrap();
             self.draw_timer.restart();
         }
     }
     fn context(&self) -> &Context {
         &self.ctx
     }
-    fn context_mut(&mut self) -> &mut Context {
-        &mut self.ctx
-    }
+    //fn context_mut(&mut self) -> &mut Context {
+        //&mut self.ctx
+    //}
 }
+
 //
 //pub struct RandomRows {
 //    rng: ThreadRng,

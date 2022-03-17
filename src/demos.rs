@@ -3,12 +3,12 @@ extern crate sdl2;
 
 use std::time::Duration;
 
-use rand::Rng;
 use rand::rngs::ThreadRng;
+use rand::Rng;
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
 
-use engine::{ Context, Engine, GameState, timer, FontDescriptor };
+use engine::{timer, Context, Engine, FontDescriptor, GameState};
 
 //pub struct RandomNoise {
 //    rng: ThreadRng,
@@ -96,11 +96,14 @@ impl GameState for MixedExample<'_> {
     fn on_start(&mut self, _ngin: &mut Engine) {
         //force the timer to 'done' state
         self.draw_timer.force();
-        self.test_image_surface = Some(Surface::load_bmp("resources/images/test_pattern_1.bmp").unwrap());
+        self.test_image_surface =
+            Some(Surface::load_bmp("resources/images/test_pattern_1.bmp").unwrap());
     }
     fn on_update(&mut self, elapsed_time: Duration, ngin: &mut Engine) {
         //ngin provides easy access to sdl internals that you may need direct access to.
-        ngin.window.set_title(&format!("Render time: {}ms", elapsed_time.as_millis())).unwrap();
+        ngin.window
+            .set_title(&format!("Render time: {}ms", elapsed_time.as_millis()))
+            .unwrap();
         //timers must be updated each tick
         self.draw_timer.update(elapsed_time);
         //keyboard state demonstration
@@ -113,15 +116,24 @@ impl GameState for MixedExample<'_> {
         if self.draw_timer.done {
             //different drawing operations:
             //font access
-            let font_surface = ngin.fonts["font_medium"].render(&format!("{}ms", elapsed_time.as_millis())).blended(Color::RGBA(0,0,0,255)).unwrap();
+            let font_surface = ngin.fonts["font_medium"]
+                .render(&format!("{}ms", elapsed_time.as_millis()))
+                .blended(Color::RGBA(0, 0, 0, 255))
+                .unwrap();
             //direct pixel access
             let pb = ngin.draw_surface.without_lock_mut().unwrap();
             for byte in pb {
-                 *byte = self.rng.gen();
+                *byte = self.rng.gen();
             }
             //image blitting
-            self.test_image_surface.as_ref().unwrap().blit(None, &mut ngin.draw_surface, None).unwrap();
-            font_surface.blit(None, &mut ngin.draw_surface, None).unwrap();
+            self.test_image_surface
+                .as_ref()
+                .unwrap()
+                .blit(None, &mut ngin.draw_surface, None)
+                .unwrap();
+            font_surface
+                .blit(None, &mut ngin.draw_surface, None)
+                .unwrap();
             //makes the timer go on forever
             self.draw_timer.restart();
         }
@@ -132,9 +144,9 @@ impl GameState for MixedExample<'_> {
         &self.ctx
     }
 }
-    //fn context_mut(&mut self) -> &mut Context {
-        //&mut self.ctx
-    //}
+//fn context_mut(&mut self) -> &mut Context {
+//&mut self.ctx
+//}
 //}
 
 //

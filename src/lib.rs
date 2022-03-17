@@ -1,14 +1,14 @@
 extern crate sdl2;
 
-use std::collections::{ HashSet, HashMap };
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::path::Path;
-use std::time::{ Instant, Duration };
+use std::time::{Duration, Instant};
 
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
-use sdl2::ttf::{ Font, Sdl2TtfContext };
+use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::video::Window;
 
 pub mod timer;
@@ -30,7 +30,7 @@ impl Context {
         screen_width: u32,
         screen_height: u32,
         font_descriptors: Option<Vec<FontDescriptor>>,
-        ) -> Self {
+    ) -> Self {
         Self {
             screen_width,
             screen_height,
@@ -65,17 +65,16 @@ pub struct Engine<'a, 'b> {
 
 pub trait GameState {
     fn on_start(&mut self, _ngin: &mut Engine) {}
-    fn on_update(
-        &mut self,
-        elapsed_time: Duration,
-        ngin: &mut Engine,
-        );
+    fn on_update(&mut self, elapsed_time: Duration, ngin: &mut Engine);
     fn on_exit(&mut self) {}
     fn context(&self) -> &Context;
     //fn context_mut(&mut self) -> &mut Context;
 }
 
-fn load_fonts<'a, 'b>(ttf_context: &'a Sdl2TtfContext, font_descriptors: &Vec<FontDescriptor>) -> HashMap<&'static str, Font<'a, 'b>> {
+fn load_fonts<'a, 'b>(
+    ttf_context: &'a Sdl2TtfContext,
+    font_descriptors: &[FontDescriptor],
+) -> HashMap<&'static str, Font<'a, 'b>> {
     let mut result: HashMap<&str, Font> = HashMap::new();
     for descriptor in font_descriptors {
         let path = Path::new(descriptor.path);
@@ -86,7 +85,7 @@ fn load_fonts<'a, 'b>(ttf_context: &'a Sdl2TtfContext, font_descriptors: &Vec<Fo
 }
 
 /// Handles boilerplate sdl2 instantiatiations and the main loop.
-/// Within the main loop, calls GameState hooks, and blits to the screen after 
+/// Within the main loop, calls GameState hooks, and blits to the screen after
 /// on_update. Finally, this function manages the sdl event pump.
 pub fn run<T: GameState>(game_state: &mut T) {
     let sdl = sdl2::init().unwrap();
@@ -100,16 +99,34 @@ pub fn run<T: GameState>(game_state: &mut T) {
         .unwrap();
     let ttf_context = sdl2::ttf::init().unwrap();
     let mut event_pump = sdl.event_pump().unwrap();
-    let mut pixel_buffer = vec![100_u8; (win_x * win_y * 3).try_into().expect("Somehow overflowed a usize with num screen pixels")].into_boxed_slice();
-    let draw_surface = Surface::from_data(&mut pixel_buffer, win_x, win_y, 3 * win_x, PixelFormatEnum::RGB24).unwrap();
+    let mut pixel_buffer = vec![
+        100_u8;
+        (win_x * win_y * 3)
+            .try_into()
+            .expect("Somehow overflowed a usize with num screen pixels")
+    ]
+    .into_boxed_slice();
+    let draw_surface = Surface::from_data(
+        &mut pixel_buffer,
+        win_x,
+        win_y,
+        3 * win_x,
+        PixelFormatEnum::RGB24,
+    )
+    .unwrap();
     let mut t1 = Instant::now();
 
     let keyboard_state = KeyboardState {
         previous: HashSet::new(),
         current: HashSet::new(),
     };
-    let fonts = load_fonts(&ttf_context, &ctx.font_descriptors.as_ref().unwrap());
-    let mut ngin = Engine { keyboard_state, window, draw_surface, fonts };
+    let fonts = load_fonts(&ttf_context, ctx.font_descriptors.as_ref().unwrap());
+    let mut ngin = Engine {
+        keyboard_state,
+        window,
+        draw_surface,
+        fonts,
+    };
 
     game_state.on_start(&mut ngin);
 
@@ -126,11 +143,13 @@ pub fn run<T: GameState>(game_state: &mut T) {
 
         ngin.keyboard_state.previous = ngin.keyboard_state.current;
         let mut window_surface = ngin.window.surface(&event_pump).unwrap();
-        ngin.draw_surface.blit(None, &mut window_surface, None).unwrap();
+        ngin.draw_surface
+            .blit(None, &mut window_surface, None)
+            .unwrap();
         window_surface.update_window().unwrap();
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit {..} => break 'main,
+                sdl2::event::Event::Quit { .. } => break 'main,
                 _ => {}
             }
         }

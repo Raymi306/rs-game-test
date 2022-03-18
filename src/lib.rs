@@ -1,7 +1,6 @@
 extern crate sdl2;
 
 use std::collections::{HashMap, HashSet};
-use std::convert::TryInto;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -10,6 +9,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::surface::Surface;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::video::Window;
+use sdl2::Sdl;
 
 pub mod timer;
 
@@ -94,44 +94,26 @@ fn load_fonts<'a, 'b>(
 /// Within the main loop, calls GameState hooks, and blits to the screen after
 /// on_update. Finally, this function manages the sdl event pump.
 pub fn run<T: GameState>(game_state: &mut T) {
-    let sdl = sdl2::init().unwrap();
+    let sdl: Sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
+    let ttf_context = sdl2::ttf::init().unwrap();
     let ctx = game_state.context();
-    let win_x = ctx.screen_width;
-    let win_y = ctx.screen_height;
+    let mut event_pump = sdl.event_pump().unwrap();
     let window = video_subsystem
-        .window("Game", win_x, win_y)
+        .window("Game", ctx.screen_width, ctx.screen_height)
         .build()
         .unwrap();
-    let ttf_context = sdl2::ttf::init().unwrap();
-    let mut event_pump = sdl.event_pump().unwrap();
-    let mut pixel_buffer = vec![
-        100_u8;
-        (win_x * win_y * 3)
-            .try_into()
-            .expect("Somehow overflowed a usize with num screen pixels")
-    ]
-    .into_boxed_slice();
-    let draw_surface = Surface::from_data(
-        &mut pixel_buffer,
-        win_x,
-        win_y,
-        3 * win_x,
-        PixelFormatEnum::RGB24,
-    )
-    .unwrap();
+    let draw_surface =
+        Surface::new(ctx.screen_width, ctx.screen_height, PixelFormatEnum::RGB24).unwrap();
     let mut t1 = Instant::now();
-
     let keyboard_state = KeyboardState {
         previous: HashSet::new(),
         current: HashSet::new(),
     };
-    let _fonts = if let Some(fonts_desired) = &ctx.font_descriptors {
-        Some(load_fonts(&ttf_context, fonts_desired))
-    } else {
-        None
-    };
-    let _fonts = ctx.font_descriptors.as_ref().map(|inner| load_fonts(&ttf_context, inner));
+    let _fonts = ctx
+        .font_descriptors
+        .as_ref()
+        .map(|inner| load_fonts(&ttf_context, inner));
     let mut ngin = Engine {
         keyboard_state,
         window,

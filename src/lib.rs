@@ -60,7 +60,7 @@ pub struct Engine<'a, 'b> {
     pub keyboard_state: KeyboardState,
     pub window: Window,
     pub draw_surface: Surface<'a>,
-    pub _fonts: Option<HashMap<&'static str, Font<'a, 'b>>>,
+    _fonts: Option<HashMap<&'static str, Font<'a, 'b>>>,
 }
 
 impl<'a, 'b> Engine<'a, 'b> {

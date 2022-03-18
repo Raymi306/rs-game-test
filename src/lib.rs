@@ -131,6 +131,7 @@ pub fn run<T: GameState>(game_state: &mut T) {
     } else {
         None
     };
+    let _fonts = ctx.font_descriptors.as_ref().map(|inner| load_fonts(&ttf_context, inner));
     let mut ngin = Engine {
         keyboard_state,
         window,

@@ -60,7 +60,13 @@ pub struct Engine<'a, 'b> {
     pub keyboard_state: KeyboardState,
     pub window: Window,
     pub draw_surface: Surface<'a>,
-    pub fonts: HashMap<&'static str, Font<'a, 'b>>,
+    pub _fonts: Option<HashMap<&'static str, Font<'a, 'b>>>,
+}
+
+impl<'a, 'b> Engine<'a, 'b> {
+    pub fn fonts(&self) -> &HashMap<&'static str, Font<'a, 'b>> {
+        self._fonts.as_ref().unwrap()
+    }
 }
 
 pub trait GameState {
@@ -120,12 +126,16 @@ pub fn run<T: GameState>(game_state: &mut T) {
         previous: HashSet::new(),
         current: HashSet::new(),
     };
-    let fonts = load_fonts(&ttf_context, ctx.font_descriptors.as_ref().unwrap());
+    let _fonts = if let Some(fonts_desired) = &ctx.font_descriptors {
+        Some(load_fonts(&ttf_context, fonts_desired))
+    } else {
+        None
+    };
     let mut ngin = Engine {
         keyboard_state,
         window,
         draw_surface,
-        fonts,
+        _fonts,
     };
 
     game_state.on_start(&mut ngin);

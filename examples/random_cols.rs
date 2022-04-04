@@ -5,8 +5,11 @@ use std::time::Duration;
 
 use rand::rngs::ThreadRng;
 use rand::Rng;
+use sdl2::pixels::Color;
 
 use engine::{run, Context, Engine, GameState};
+use engine::types::Vec2;
+use engine::drawing::draw_vertical_unchecked;
 
 pub struct RandomCols {
     rng: ThreadRng,
@@ -27,16 +30,16 @@ impl RandomCols {
 
 impl GameState for RandomCols {
     fn on_update(&mut self, _elapsed_time: Duration, ngin: &mut Engine) {
-        let pb = ngin.draw_surface.without_lock_mut().unwrap();
         for x in 0..self.ctx.screen_width {
             let r = self.rng.gen();
             let g = self.rng.gen();
             let b = self.rng.gen();
-            for y in 0..self.ctx.screen_height {
-                pb[((x + self.ctx.screen_width * y) * 3) as usize] = r;
-                pb[((x + self.ctx.screen_width * y) * 3 + 1) as usize] = g;
-                pb[((x + self.ctx.screen_width * y) * 3 + 2) as usize] = b;
-            }
+            draw_vertical_unchecked(
+                Vec2 {x: x.try_into().unwrap(), y: 0},
+                self.ctx.screen_height as i32,
+                &mut ngin.draw_surface,
+                Color { r, g, b, a: 255 }
+                );
         }
     }
     fn context(&self) -> &Context {

@@ -3,12 +3,12 @@ extern crate sdl2;
 
 use std::time::Duration;
 
-use rand::rngs::ThreadRng;
-use rand::Rng;
 use sdl2::pixels::Color;
 use sdl2::surface::Surface;
 
 use engine::{run, timer, Context, Engine, FontDescriptor, GameState};
+use engine::drawing::{draw_line, draw_triangle, draw_rectangle_unchecked};
+use engine::types::{Vec2,};
 
 ///Must contain a Context struct, which contains information for initializing the engine.
 ///Put any thing the game will need later during its on_update hook here; can be assets, timers,
@@ -16,38 +16,25 @@ use engine::{run, timer, Context, Engine, FontDescriptor, GameState};
 pub struct Features<'a> {
     ctx: Context,
     draw_timer: timer::Timer,
-    rng: ThreadRng,
     test_image_surface: Option<Surface<'a>>,
 }
 
 ///Implement new for a pretty main
 impl Features<'_> {
     pub fn new() -> Self {
-        let rng = rand::thread_rng();
         let path = "resources/fonts/JetbrainsMonoRegular.ttf";
         // must specify before the main loop which fonts you need, if you specify a range of sizes
         // you can scale the resulting surfaces to get other sizes nearby
         let desired_fonts = vec![
             FontDescriptor {
                 path,
-                label: "font_small",
-                size: 12,
-            },
-            FontDescriptor {
-                path,
                 label: "font_medium",
                 size: 24,
-            },
-            FontDescriptor {
-                path,
-                label: "font_large",
-                size: 64,
             },
         ];
         let ctx = Context::new(1024, 768, Some(desired_fonts));
         Self {
             ctx,
-            rng,
             draw_timer: timer::Timer::new(Duration::from_millis(16)),
             test_image_surface: None,
         }
@@ -85,11 +72,15 @@ impl GameState for Features<'_> {
                 .render(&format!("{}ms", elapsed_time.as_millis()))
                 .blended(Color::RGBA(0, 0, 0, 255))
                 .unwrap();
-            //direct pixel access
-            let pb = ngin.draw_surface.without_lock_mut().unwrap();
-            for byte in pb {
-                *byte = self.rng.gen();
-            }
+            //primitives
+            let p1 = Vec2 {x: 0, y: 0};
+            let p2 = Vec2 {x: 1024, y: 768};
+            draw_line(p1, p2, &mut ngin.draw_surface, Color::RGBA(255, 0, 0, 255));
+            let p1 = Vec2 {x: 100, y: 100};
+            let p2 = Vec2 {x: 300, y: 500};
+            let p3 = Vec2 {x: 400, y: 200};
+            draw_triangle(p1, p2, p3, &mut ngin.draw_surface, Color::RGBA(0, 255, 0, 255));
+            draw_rectangle_unchecked(p1, p2, &mut ngin.draw_surface, Color::RGBA(0, 0, 255, 255));
             //image blitting
             self.test_image_surface
                 .as_ref()

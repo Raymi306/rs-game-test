@@ -5,8 +5,11 @@ use std::time::Duration;
 
 use rand::rngs::ThreadRng;
 use rand::Rng;
+use sdl2::pixels::Color;
 
 use engine::{run, Context, Engine, GameState};
+use engine::types::Vec2;
+use engine::drawing::draw_horizontal_unchecked;
 
 pub struct RandomRows {
     rng: ThreadRng,
@@ -27,16 +30,16 @@ impl RandomRows {
 
 impl GameState for RandomRows {
     fn on_update(&mut self, _elapsed_time: Duration, ngin: &mut Engine) {
-        let pb = ngin.draw_surface.without_lock_mut().unwrap();
-        for i in 0..self.ctx.screen_height {
+        for y in 0..self.ctx.screen_height {
             let r = self.rng.gen();
             let g = self.rng.gen();
             let b = self.rng.gen();
-            for j in (0..self.ctx.screen_width as usize * 3).step_by(3) {
-                pb[j + (i * self.ctx.screen_width * 3) as usize] = r;
-                pb[j + 1 + (i * self.ctx.screen_width * 3) as usize] = g;
-                pb[j + 2 + (i * self.ctx.screen_width * 3) as usize] = b;
-            }
+            draw_horizontal_unchecked(
+                Vec2 { x: 0, y: y.try_into().unwrap()},
+                self.ctx.screen_width as i32,
+                &mut ngin.draw_surface,
+                Color { r, g, b, a: 255 }
+                );
         }
     }
     fn context(&self) -> &Context {

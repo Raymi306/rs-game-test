@@ -5,9 +5,11 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use sdl2::keyboard::Keycode;
-use sdl2::render::Canvas;
+use sdl2::pixels::Color;
+use sdl2::render::{Canvas, Texture, TextureCreator};
+use sdl2::surface::Surface;
 use sdl2::ttf::{Font, Sdl2TtfContext};
-use sdl2::video::Window;
+use sdl2::video::{Window, WindowContext};
 use sdl2::Sdl;
 
 pub mod timer;
@@ -59,18 +61,25 @@ impl KeyboardState {
 pub struct Engine<'a, 'b> {
     pub keyboard_state: KeyboardState,
     pub canvas: Canvas<Window>,
-    _fonts: Option<HashMap<&'static str, Font<'a, 'b>>>,
+    pub fonts: HashMap<String, Font<'a, 'b>>,
+    pub _texture_creator: TextureCreator<WindowContext>,
+    pub textures: HashMap<String, Texture<'a>>,
 }
 
 impl<'a, 'b> Engine<'a, 'b> {
-    pub fn fonts(&self) -> &HashMap<&'static str, Font<'a, 'b>> {
-        self._fonts.as_ref().unwrap()
+    pub fn create_font_texture(&'a mut self, name: &str, font: &Font, text: &str, color: Color) {
+        let font_surface = font.render(text).blended(color).unwrap();
+        self.create_texture_from_surface(name, font_surface);
+    }
+    pub fn create_texture_from_surface(&'a mut self, name: &str, surface: Surface) {
+        let texture = self._texture_creator.create_texture_from_surface(surface).unwrap();
+        self.textures.insert(name.to_string(), texture);
     }
 }
 
 pub trait GameState {
-    fn on_start(&mut self, _ngin: &mut Engine) {}
-    fn on_update(&mut self, elapsed_time: Duration, ngin: &mut Engine);
+    fn on_start<E: Engine>(&mut self, _ngin: &mut E) {}
+    fn on_update<E: Engine>(&mut self, elapsed_time: Duration, ngin: &mut E);
     fn on_exit(&mut self) {}
     fn context(&self) -> &Context;
     //fn context_mut(&mut self) -> &mut Context;
@@ -79,12 +88,12 @@ pub trait GameState {
 fn load_fonts<'a, 'b>(
     ttf_context: &'a Sdl2TtfContext,
     font_descriptors: &[FontDescriptor],
-) -> HashMap<&'static str, Font<'a, 'b>> {
-    let mut result: HashMap<&str, Font> = HashMap::new();
+) -> HashMap<String, Font<'a, 'b>> {
+    let mut result: HashMap<String, Font> = HashMap::new();
     for descriptor in font_descriptors {
         let path = Path::new(descriptor.path);
         let font = ttf_context.load_font(path, descriptor.size).unwrap();
-        result.insert(descriptor.label, font);
+        result.insert(descriptor.label.to_string(), font);
     }
     result
 }
@@ -102,7 +111,7 @@ pub fn run<T: GameState>(game_state: &mut T) {
         .window("Game", ctx.screen_width, ctx.screen_height)
         .build()
         .unwrap();
-    let mut canvas = window
+    let canvas = window
         .into_canvas()
         .accelerated()
         .build()
@@ -112,14 +121,19 @@ pub fn run<T: GameState>(game_state: &mut T) {
         previous: HashSet::new(),
         current: HashSet::new(),
     };
-    let _fonts = ctx
+    let fonts = ctx
         .font_descriptors
         .as_ref()
-        .map(|inner| load_fonts(&ttf_context, inner));
+        .map(|inner| load_fonts(&ttf_context, inner))
+        .unwrap();
+    let _texture_creator = canvas.texture_creator();
+    let textures = HashMap::new();
     let mut ngin = Engine {
         keyboard_state,
         canvas,
-        _fonts,
+        fonts,
+        _texture_creator,
+        textures,
     };
 
     game_state.on_start(&mut ngin);

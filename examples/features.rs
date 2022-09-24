@@ -4,24 +4,19 @@ use std::time::Duration;
 
 use sdl2::pixels::Color;
 use sdl2::rect::{Rect, Point};
-use sdl2::render::{Texture, TextureCreator};
-use sdl2::surface::Surface;
-use sdl2::video::WindowContext;
 
 use engine::{run, timer, Context, Engine, FontDescriptor, GameState};
 
 ///Must contain a Context struct, which contains information for initializing the engine.
 ///Put any thing the game will need later during its on_update hook here; can be assets, timers,
 ///variables, etc.
-pub struct Features<'a> {
+pub struct Features {
     ctx: Context,
     draw_timer: timer::Timer,
-    texture_creator: Option<TextureCreator<WindowContext>>,
-    image_texture: Option<Texture<'a>>,
 }
 
 ///Implement new for a pretty main
-impl Features<'_> {
+impl Features {
     pub fn new() -> Self {
         let path = "resources/fonts/JetbrainsMonoRegular.ttf";
         // must specify before the main loop which fonts you need, if you specify a range of sizes
@@ -37,8 +32,6 @@ impl Features<'_> {
         Self {
             ctx,
             draw_timer: timer::Timer::new(Duration::from_millis(16)),
-            texture_creator: None,
-            image_texture: None,
         }
     }
 }
@@ -46,22 +39,15 @@ impl Features<'_> {
 ///Implement the 3 key hooks, `on_start`, `on_update`, `on_exit`, as well as the boilerplate function
 ///`context`. `on_start` and `on_exit` have default implementations if you don't need them and wish
 ///to just use `on_update`
-impl GameState for Features<'_> {
-    fn on_start(&mut self, ngin: &mut Engine) {
+impl GameState for Features {
+    fn on_start(&mut self, _ngin: &mut Engine) {
         //force the timer to 'done' state
         self.draw_timer.force();
-        self.texture_creator = Some(ngin.canvas.texture_creator());
-        let surface = Surface::load_bmp("resources/images/test_pattern_1.bmp").expect("Unable to load bmp image");
-        let texture_creator = self.texture_creator.unwrap();
-        let image_texture = surface.as_texture(&texture_creator).unwrap();
-        self.image_texture = Some(image_texture);
-        
-        //self.image_texture = Some(surface.as_texture(&self.texture_creator.unwrap()).unwrap());
     }
     fn on_update(&mut self, elapsed_time: Duration, ngin: &mut Engine) {
         //ngin provides easy access to sdl internals that you may need direct access to.
         ngin.canvas
-            .window()
+            .window_mut()
             .set_title(&format!("Render time: {}ms", elapsed_time.as_millis()))
             .unwrap();
         //timers must be updated each tick
@@ -76,11 +62,13 @@ impl GameState for Features<'_> {
         if self.draw_timer.done {
             //different drawing operations:
             //font access
-            let font_surface = ngin.fonts()["font_medium"]
-                .render(&format!("{}ms", elapsed_time.as_millis()))
-                .blended(Color::RGBA(0, 0, 0, 255))
-                .unwrap();
-            let font_texture = self.texture_creator.unwrap().create_texture_from_surface(&font_surface).unwrap();
+            ngin.create_font_texture(
+                "font",
+                &ngin.fonts["font_medium"],
+                &format!("{}ms", elapsed_time.as_millis()),
+                Color::RGBA(0, 0, 0, 255)
+                );
+
             //primitives
             let p1 = Point::new(0, 0);
             let p2 = Point::new(1024, 768);
@@ -90,8 +78,8 @@ impl GameState for Features<'_> {
             let rect = Rect::new(100, 100, 200, 400);
             ngin.canvas.draw_rect(rect).unwrap();
             //image blitting
-            ngin.canvas.copy(&self.image_texture.as_ref().unwrap(), None, None).unwrap();
-            ngin.canvas.copy(&font_texture, None, None).unwrap();
+            //ngin.canvas.copy(&self.image_texture.as_ref().unwrap(), None, None).unwrap();
+            //ngin.canvas.copy(&font_texture, None, None).unwrap();
             
             //makes the timer go on forever
             self.draw_timer.restart();

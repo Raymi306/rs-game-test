@@ -6,10 +6,9 @@ use std::time::Duration;
 use rand::rngs::ThreadRng;
 use rand::Rng;
 use sdl2::pixels::Color;
+use sdl2::rect::Point;
 
 use engine::{run, Context, Engine, GameState};
-use engine::types::Vec2;
-use engine::drawing::draw_vertical_unchecked;
 
 pub struct RandomCols {
     rng: ThreadRng,
@@ -34,12 +33,11 @@ impl GameState for RandomCols {
             let r = self.rng.gen();
             let g = self.rng.gen();
             let b = self.rng.gen();
-            draw_vertical_unchecked(
-                Vec2 {x: x.try_into().unwrap(), y: 0},
-                self.ctx.screen_height as i32,
-                &mut ngin.draw_surface,
-                Color { r, g, b, a: 255 }
-                );
+            ngin.canvas.set_draw_color(Color { r, g, b, a: 255 });
+            ngin.canvas.draw_line(
+                Point::new(x.try_into().unwrap(), 0),
+                Point::new(x.try_into().unwrap(), self.ctx.screen_height as i32)
+                ).unwrap();
         }
     }
     fn context(&self) -> &Context {

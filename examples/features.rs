@@ -1,14 +1,14 @@
-extern crate rand;
 extern crate sdl2;
 
 use std::time::Duration;
 
 use sdl2::pixels::Color;
+use sdl2::rect::{Rect, Point};
+use sdl2::render::{Texture, TextureCreator};
 use sdl2::surface::Surface;
+use sdl2::video::WindowContext;
 
 use engine::{run, timer, Context, Engine, FontDescriptor, GameState};
-use engine::drawing::{draw_line, draw_triangle, draw_rectangle_unchecked};
-use engine::types::{Vec2,};
 
 ///Must contain a Context struct, which contains information for initializing the engine.
 ///Put any thing the game will need later during its on_update hook here; can be assets, timers,
@@ -16,7 +16,8 @@ use engine::types::{Vec2,};
 pub struct Features<'a> {
     ctx: Context,
     draw_timer: timer::Timer,
-    test_image_surface: Option<Surface<'a>>,
+    texture_creator: Option<TextureCreator<WindowContext>>,
+    image_texture: Option<Texture<'a>>,
 }
 
 ///Implement new for a pretty main
@@ -36,7 +37,8 @@ impl Features<'_> {
         Self {
             ctx,
             draw_timer: timer::Timer::new(Duration::from_millis(16)),
-            test_image_surface: None,
+            texture_creator: None,
+            image_texture: None,
         }
     }
 }
@@ -45,15 +47,21 @@ impl Features<'_> {
 ///`context`. `on_start` and `on_exit` have default implementations if you don't need them and wish
 ///to just use `on_update`
 impl GameState for Features<'_> {
-    fn on_start(&mut self, _ngin: &mut Engine) {
+    fn on_start(&mut self, ngin: &mut Engine) {
         //force the timer to 'done' state
         self.draw_timer.force();
-        self.test_image_surface =
-            Some(Surface::load_bmp("resources/images/test_pattern_1.bmp").unwrap());
+        self.texture_creator = Some(ngin.canvas.texture_creator());
+        let surface = Surface::load_bmp("resources/images/test_pattern_1.bmp").expect("Unable to load bmp image");
+        let texture_creator = self.texture_creator.unwrap();
+        let image_texture = surface.as_texture(&texture_creator).unwrap();
+        self.image_texture = Some(image_texture);
+        
+        //self.image_texture = Some(surface.as_texture(&self.texture_creator.unwrap()).unwrap());
     }
     fn on_update(&mut self, elapsed_time: Duration, ngin: &mut Engine) {
         //ngin provides easy access to sdl internals that you may need direct access to.
-        ngin.window
+        ngin.canvas
+            .window()
             .set_title(&format!("Render time: {}ms", elapsed_time.as_millis()))
             .unwrap();
         //timers must be updated each tick
@@ -72,24 +80,19 @@ impl GameState for Features<'_> {
                 .render(&format!("{}ms", elapsed_time.as_millis()))
                 .blended(Color::RGBA(0, 0, 0, 255))
                 .unwrap();
+            let font_texture = self.texture_creator.unwrap().create_texture_from_surface(&font_surface).unwrap();
             //primitives
-            let p1 = Vec2 {x: 0, y: 0};
-            let p2 = Vec2 {x: 1024, y: 768};
-            draw_line(p1, p2, &mut ngin.draw_surface, Color::RGBA(255, 0, 0, 255));
-            let p1 = Vec2 {x: 100, y: 100};
-            let p2 = Vec2 {x: 300, y: 500};
-            let p3 = Vec2 {x: 400, y: 200};
-            draw_triangle(p1, p2, p3, &mut ngin.draw_surface, Color::RGBA(0, 255, 0, 255));
-            draw_rectangle_unchecked(p1, p2, &mut ngin.draw_surface, Color::RGBA(0, 0, 255, 255));
+            let p1 = Point::new(0, 0);
+            let p2 = Point::new(1024, 768);
+            ngin.canvas.set_draw_color(Color::RGBA(255, 0, 0, 255));
+            ngin.canvas.draw_line(p1, p2).unwrap();
+            ngin.canvas.set_draw_color(Color::RGBA(0, 0, 255, 255));
+            let rect = Rect::new(100, 100, 200, 400);
+            ngin.canvas.draw_rect(rect).unwrap();
             //image blitting
-            self.test_image_surface
-                .as_ref()
-                .unwrap()
-                .blit(None, &mut ngin.draw_surface, None)
-                .unwrap();
-            font_surface
-                .blit(None, &mut ngin.draw_surface, None)
-                .unwrap();
+            ngin.canvas.copy(&self.image_texture.as_ref().unwrap(), None, None).unwrap();
+            ngin.canvas.copy(&font_texture, None, None).unwrap();
+            
             //makes the timer go on forever
             self.draw_timer.restart();
         }

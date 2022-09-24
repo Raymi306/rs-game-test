@@ -5,8 +5,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::PixelFormatEnum;
-use sdl2::surface::Surface;
+use sdl2::render::Canvas;
 use sdl2::ttf::{Font, Sdl2TtfContext};
 use sdl2::video::Window;
 use sdl2::Sdl;
@@ -60,8 +59,7 @@ impl KeyboardState {
 
 pub struct Engine<'a, 'b> {
     pub keyboard_state: KeyboardState,
-    pub window: Window,
-    pub draw_surface: Surface<'a>,
+    pub canvas: Canvas<Window>,
     _fonts: Option<HashMap<&'static str, Font<'a, 'b>>>,
 }
 
@@ -105,8 +103,11 @@ pub fn run<T: GameState>(game_state: &mut T) {
         .window("Game", ctx.screen_width, ctx.screen_height)
         .build()
         .unwrap();
-    let draw_surface =
-        Surface::new(ctx.screen_width, ctx.screen_height, PixelFormatEnum::RGB24).unwrap();
+    let mut canvas = window
+        .into_canvas()
+        .accelerated()
+        .build()
+        .unwrap();
     let mut t1 = Instant::now();
     let keyboard_state = KeyboardState {
         previous: HashSet::new(),
@@ -118,14 +119,19 @@ pub fn run<T: GameState>(game_state: &mut T) {
         .map(|inner| load_fonts(&ttf_context, inner));
     let mut ngin = Engine {
         keyboard_state,
-        window,
-        draw_surface,
+        canvas,
         _fonts,
     };
 
     game_state.on_start(&mut ngin);
 
     'main: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                sdl2::event::Event::Quit { .. } => break 'main,
+                _ => {}
+            }
+        }
         let elapsed_time = t1.elapsed();
         t1 = Instant::now();
         ngin.keyboard_state.current = event_pump
@@ -133,21 +139,9 @@ pub fn run<T: GameState>(game_state: &mut T) {
             .pressed_scancodes()
             .filter_map(Keycode::from_scancode)
             .collect();
-
         game_state.on_update(elapsed_time, &mut ngin);
-
         ngin.keyboard_state.previous = ngin.keyboard_state.current;
-        let mut window_surface = ngin.window.surface(&event_pump).unwrap();
-        ngin.draw_surface
-            .blit(None, &mut window_surface, None)
-            .unwrap();
-        window_surface.update_window().unwrap();
-        for event in event_pump.poll_iter() {
-            match event {
-                sdl2::event::Event::Quit { .. } => break 'main,
-                _ => {}
-            }
-        }
+        ngin.canvas.present();
     }
     game_state.on_exit();
 }

@@ -12,7 +12,6 @@ use sdl2::Sdl;
 
 pub mod timer;
 pub mod types;
-pub mod drawing;
 
 pub struct FontDescriptor {
     pub path: &'static str,
